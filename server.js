@@ -1,8 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const routes = require('./app/routes/index');
 const thiyaRoutes = require('./app/routes/thiya.routes');
 
 const path = require('path');
@@ -23,10 +23,9 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-app.use('/api/dsthai', routes);
 app.use('/api/thiya', thiyaRoutes);
 app.get("/", (req, res) => {
-    res.json({ message: "Welcome to Doctorshield TH application." });
+    res.json({ message: "Welcome to Thiya Fashions application." });
 });
 
 app.use((err, req, res, next) => {
