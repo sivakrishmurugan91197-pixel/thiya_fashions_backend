@@ -12,6 +12,11 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.ENUM('men', 'women', 'kids'),
             allowNull: false,
             defaultValue: 'women'
+        },
+        size_status: {
+            type: Sequelize.BOOLEAN,
+            allowNull: false,
+            defaultValue: true
         }
     });
 
