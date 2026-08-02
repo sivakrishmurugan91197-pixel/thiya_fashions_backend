@@ -128,8 +128,10 @@ exports.addProduct = async (req, res) => {
                 // Save file from memory to disk
                 fs.writeFileSync(filePath, file.buffer);
                 
-                // Add public URL to array (assuming backend runs on localhost:3000)
-                const publicUrl = `http://localhost:3000/uploads/${relativeDir.replace(/\\/g, '/')}/${fileName}`;
+                // Add public URL to array (dynamically resolving protocol and host)
+                const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+                const host = req.headers['x-forwarded-host'] || req.get('host');
+                const publicUrl = `${protocol}://${host}/uploads/${relativeDir.replace(/\\/g, '/')}/${fileName}`;
                 imageUrls.push({ color: color, url: publicUrl });
             }
 
