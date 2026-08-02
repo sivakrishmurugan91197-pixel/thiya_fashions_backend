@@ -11,6 +11,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.post('/categories', thiyaCategoryController.createCategory);
 router.get('/categories', thiyaCategoryController.getAllCategories);
 router.get('/categories/active', thiyaCategoryController.getActiveCategories);
+router.put('/categories/:id', thiyaCategoryController.updateCategory);
 
 // Products
 router.get('/products', thiyaController.getProducts);
