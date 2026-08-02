@@ -7,6 +7,7 @@ All changes made to clean up, configure, and optimize the backend service are do
 ### Added
 - Created database URL parsing logic in `app/config/db.config.js` to automatically extract database host, port, username, password, and database name from `DATABASE_URL` environment variable (for Railway compatibility).
 - Added `PORT` variable passing to `Sequelize` instance setup in `app/models/index.js` to support custom port configurations in production.
+- Added `size_status` (boolean, default: true) parameter to `thiya_categories` model schema and Category controller creation payload to manage sizing visibility.
 - Added `require('dotenv').config()` loader to the top of `server.js` to guarantee environment variables are loaded on boot.
 - Added `DATABASE_URL` connection parameter to local `.env` pointing to target production MySQL database.
 
