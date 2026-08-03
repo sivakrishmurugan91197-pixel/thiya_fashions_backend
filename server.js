@@ -27,14 +27,6 @@ app.use('/api/thiya', thiyaRoutes);
 app.get("/", (req, res) => {
     res.json({ message: "Welcome to Thiya Fashions application." });
 });
-app.get("/api/thiya/debug-path", (req, res) => {
-    const path = require('path');
-    res.json({
-        __dirname,
-        cwd: process.cwd(),
-        uploads_resolved: path.join(__dirname, 'uploads')
-    });
-});
 
 app.use((err, req, res, next) => {
     console.error('Unhandled error', { error: err.message });
