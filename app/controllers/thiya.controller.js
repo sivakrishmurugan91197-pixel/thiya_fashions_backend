@@ -156,6 +156,95 @@ exports.addProduct = async (req, res) => {
     }
 };
 
+exports.updateProduct = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, description, price, discount_amount, size, category_id, colors, details, status, existing_images } = req.body;
+
+        const product = await ThiyaProduct.findByPk(id);
+        if (!product) {
+            return res.status(404).json({ is_success: false, message: "Product not found" });
+        }
+
+        // Ensure category exists
+        if (category_id) {
+            const category = await ThiyaCategory.findByPk(category_id);
+            if (!category) {
+                return res.status(400).json({ is_success: false, message: "Invalid Category ID" });
+            }
+        }
+
+        let parsedColors = [];
+        if (colors) {
+            try { parsedColors = JSON.parse(colors); } catch(e) { parsedColors = colors.split(',').map(s => s.trim()); }
+        }
+
+        let parsedDetails = {};
+        if (details) {
+            try { parsedDetails = JSON.parse(details); } catch(e) {}
+        }
+
+        // Handle existing images
+        let imageUrls = [];
+        if (existing_images) {
+            try { imageUrls = JSON.parse(existing_images); } catch(e) {}
+        } else if (product.images) {
+            imageUrls = product.images;
+        }
+
+        // Handle new file uploads
+        if (req.files && req.files.length > 0) {
+            const catId = category_id || 'uncategorized';
+            const prodId = product.id;
+            
+            const relativeDir = path.join('categories', String(catId), 'products', String(prodId));
+            const uploadDir = path.join(__dirname, '..', '..', 'uploads', relativeDir);
+            
+            if (!fs.existsSync(uploadDir)) {
+                fs.mkdirSync(uploadDir, { recursive: true });
+            }
+
+            for (let i = 0; i < req.files.length; i++) {
+                const file = req.files[i];
+                
+                let color = 'default';
+                if (file.fieldname && file.fieldname.startsWith('images_')) {
+                    color = file.fieldname.replace('images_', '');
+                }
+
+                const fileName = `img_${Date.now()}_${i}${path.extname(file.originalname)}`;
+                const filePath = path.join(uploadDir, fileName);
+                
+                fs.writeFileSync(filePath, file.buffer);
+                
+                const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+                const host = req.headers['x-forwarded-host'] || req.get('host');
+                const publicUrl = `${protocol}://${host}/uploads/${relativeDir.replace(/\\/g, '/')}/${fileName}`;
+                imageUrls.push({ color: color, url: publicUrl });
+            }
+        }
+
+        // Update product fields
+        product.title = title || product.title;
+        product.description = description || product.description;
+        product.price = price !== undefined ? price : product.price;
+        product.discount_amount = discount_amount !== undefined ? discount_amount : product.discount_amount;
+        product.size = size !== undefined ? size : product.size;
+        product.category_id = category_id !== undefined ? (category_id || null) : product.category_id;
+        product.status = status || product.status;
+        product.colors = colors ? parsedColors : product.colors;
+        product.details = details ? parsedDetails : product.details;
+        product.images = imageUrls;
+
+        await product.save();
+
+        res.status(200).json({ is_success: true, data: product, message: "Product updated successfully" });
+    } catch (err) {
+        console.error("Update Product Error:", err);
+        res.status(500).json({ is_success: false, message: err.message });
+    }
+};
+
 // Orders & Payment
 exports.createOrder = async (req, res) => {
     try {

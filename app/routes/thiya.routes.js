@@ -20,6 +20,7 @@ router.put('/categories/:id', thiyaController.authAdmin, thiyaCategoryController
 router.get('/products', thiyaController.getProducts);
 router.get('/products/:id', thiyaController.getProductById);
 router.post('/products', thiyaController.authAdmin, upload.any(), thiyaController.addProduct); // Accept any named file fields for color mapping
+router.put('/products/:id', thiyaController.authAdmin, upload.any(), thiyaController.updateProduct);
 
 // Orders & Payment
 router.post('/orders', thiyaController.createOrder);
