@@ -2,6 +2,7 @@ const db = require("../models");
 const ThiyaProduct = db.thiya_products;
 const ThiyaOrder = db.thiya_orders;
 const ThiyaCategory = db.thiya_categories;
+const ThiyaTransaction = db.thiya_transactions;
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -270,6 +271,16 @@ exports.createOrder = async (req, res) => {
             }
         }
 
+        // Save transaction locally as pending
+        await ThiyaTransaction.create({
+            razorpay_order_id: razorpayOrderId,
+            amount: totalAmount,
+            customer_name,
+            customer_email,
+            phone,
+            status: 'pending'
+        });
+
         res.status(200).json({
             is_success: true,
             data: {
@@ -288,9 +299,8 @@ exports.createOrder = async (req, res) => {
 };
 
 exports.verifyPayment = async (req, res) => {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, order_id } = req.body;
     try {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, order_id } = req.body;
-
         // Skip signature check for mock payments (local dev only)
         if (!razorpay_order_id.startsWith('mock_')) {
             // Verify signature
@@ -299,6 +309,14 @@ exports.verifyPayment = async (req, res) => {
             const digest = shasum.digest('hex');
 
             if (digest !== razorpay_signature) {
+                // Update transaction status to failed
+                const transaction = await ThiyaTransaction.findOne({
+                    where: { razorpay_order_id: razorpay_order_id }
+                });
+                if (transaction) {
+                    transaction.status = 'failed';
+                    await transaction.save();
+                }
                 return res.status(400).json({ is_success: false, message: "Transaction not legit!" });
             }
         }
@@ -325,6 +343,17 @@ exports.verifyPayment = async (req, res) => {
             }
         }
 
+        // Update the transaction details in tbl_transaction
+        const transaction = await ThiyaTransaction.findOne({
+            where: { razorpay_order_id: razorpay_order_id }
+        });
+        if (transaction) {
+            transaction.status = 'completed';
+            transaction.razorpay_payment_id = razorpay_payment_id;
+            transaction.razorpay_signature = razorpay_signature || 'mock_signature';
+            await transaction.save();
+        }
+
         // Return first updated order for callback confirmation
         const mainOrder = pendingOrders[0] || (order_id ? await ThiyaOrder.findByPk(order_id) : null);
 
@@ -334,6 +363,19 @@ exports.verifyPayment = async (req, res) => {
             data: mainOrder
         });
     } catch (err) {
+        if (razorpay_order_id) {
+            try {
+                const transaction = await ThiyaTransaction.findOne({
+                    where: { razorpay_order_id: razorpay_order_id }
+                });
+                if (transaction) {
+                    transaction.status = 'failed';
+                    await transaction.save();
+                }
+            } catch (txErr) {
+                console.error("Error setting transaction to failed:", txErr);
+            }
+        }
         res.status(500).json({ is_success: false, message: err.message });
     }
 };
