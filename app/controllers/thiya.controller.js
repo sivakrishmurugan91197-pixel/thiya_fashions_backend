@@ -151,7 +151,8 @@ exports.addProduct = async (req, res) => {
 exports.createOrder = async (req, res) => {
     try {
         const { 
-            product_id, 
+            items, // array of { product_id, quantity, size, color }
+            product_id, // fallback for single item
             customer_name, 
             customer_email, 
             phone, 
@@ -163,27 +164,68 @@ exports.createOrder = async (req, res) => {
             district, 
             pincode, 
             state,
-            quantity 
+            quantity,
+            size,
+            color
         } = req.body;
-        
-        const qty = parseInt(quantity) || 1;
 
-        // 1. Get product details
-        const product = await ThiyaProduct.findByPk(product_id);
-        if (!product) {
-            return res.status(404).json({ is_success: false, message: "Product not found" });
+        let totalAmount = 0;
+        let checkoutItemsList = [];
+
+        if (items && items.length > 0) {
+            // Bulk checkout from cart
+            for (const item of items) {
+                const product = await ThiyaProduct.findByPk(item.product_id);
+                if (!product) {
+                    return res.status(404).json({ is_success: false, message: `Product ID ${item.product_id} not found` });
+                }
+                const unitPrice = parseFloat(product.price) - parseFloat(product.discount_amount || 0);
+                const qty = parseInt(item.quantity) || 1;
+                const subtotal = unitPrice * qty;
+                const gst = subtotal * 0.05;
+                const total = subtotal + gst;
+
+                checkoutItemsList.push({
+                    product_id: item.product_id,
+                    quantity: qty,
+                    size: item.size || 'Standard',
+                    color: item.color || 'Default',
+                    unitPrice: unitPrice,
+                    gstAmount: gst,
+                    totalAmount: total
+                });
+
+                totalAmount += total;
+            }
+        } else {
+            // Single product checkout fallback
+            const product = await ThiyaProduct.findByPk(product_id);
+            if (!product) {
+                return res.status(404).json({ is_success: false, message: "Product not found" });
+            }
+            const qty = parseInt(quantity) || 1;
+            const unitPrice = parseFloat(product.price) - parseFloat(product.discount_amount || 0);
+            const subtotal = unitPrice * qty;
+            const gst = subtotal * 0.05;
+            const total = subtotal + gst;
+
+            checkoutItemsList.push({
+                product_id: product_id,
+                quantity: qty,
+                size: size || 'Standard',
+                color: color || 'Default',
+                unitPrice: unitPrice,
+                gstAmount: gst,
+                totalAmount: total
+            });
+
+            totalAmount = total;
         }
-
-        // 2. Calculate amount
-        const unitPrice = parseFloat(product.price) - parseFloat(product.discount_amount || 0);
-        const subtotal = unitPrice * qty;
-        const gstAmount = subtotal * 0.05; // 5% GST as per screenshot
-        const totalAmount = subtotal + gstAmount;
         
         // Razorpay accepts amount in subunits (paise for INR)
         const amountInPaise = Math.round(totalAmount * 100);
 
-        // 3. Create order in Razorpay
+        // Create order in Razorpay
         const options = {
             amount: amountInPaise,
             currency: "INR",
@@ -198,32 +240,40 @@ exports.createOrder = async (req, res) => {
             console.warn("Razorpay API failed (likely dummy keys). Using mock order ID.", rzpError.message);
         }
 
-        // 4. Save order locally
-        const newOrder = await ThiyaOrder.create({
-            product_id,
-            customer_name,
-            customer_email,
-            phone,
-            alt_phone,
-            door_no,
-            street,
-            landmark,
-            city,
-            district,
-            pincode,
-            state,
-            quantity: qty,
-            amount_paid: unitPrice,
-            gst_amount: gstAmount,
-            total_amount: totalAmount,
-            payment_status: 'pending',
-            payment_id: razorpayOrderId
-        });
+        // Save orders locally
+        let firstOrderId = null;
+        for (const item of checkoutItemsList) {
+            const newOrder = await ThiyaOrder.create({
+                product_id: item.product_id,
+                customer_name,
+                customer_email,
+                phone,
+                alt_phone,
+                door_no,
+                street,
+                landmark,
+                city,
+                district,
+                pincode,
+                state,
+                quantity: item.quantity,
+                size: item.size,
+                color: item.color,
+                amount_paid: item.unitPrice, // storing unit price for reports multiplication compatibility
+                gst_amount: item.gstAmount,
+                total_amount: item.totalAmount,
+                payment_status: 'pending',
+                payment_id: razorpayOrderId // Store razorpayOrderId initially, updated to payment ID on verification
+            });
+            if (!firstOrderId) {
+                firstOrderId = newOrder.id;
+            }
+        }
 
         res.status(200).json({
             is_success: true,
             data: {
-                order_id: newOrder.id,
+                order_id: firstOrderId,
                 razorpay_order_id: razorpayOrderId,
                 amount: amountInPaise,
                 currency: "INR",
@@ -253,19 +303,35 @@ exports.verifyPayment = async (req, res) => {
             }
         }
 
-        // Update local order
-        const order = await ThiyaOrder.findByPk(order_id);
-        if (order) {
-            order.payment_status = 'completed';
-            // We store the actual payment ID as well, though earlier we stored order id
-            order.payment_id = razorpay_payment_id; 
-            await order.save();
+        // Update local orders belonging to this transaction
+        // First, find all orders matching the razorpay_order_id (initially saved as payment_id)
+        const pendingOrders = await ThiyaOrder.findAll({
+            where: { payment_id: razorpay_order_id }
+        });
+
+        if (pendingOrders.length > 0) {
+            for (const order of pendingOrders) {
+                order.payment_status = 'completed';
+                order.payment_id = razorpay_payment_id; 
+                await order.save();
+            }
+        } else if (order_id) {
+            // Fallback for single direct order update
+            const order = await ThiyaOrder.findByPk(order_id);
+            if (order) {
+                order.payment_status = 'completed';
+                order.payment_id = razorpay_payment_id; 
+                await order.save();
+            }
         }
+
+        // Return first updated order for callback confirmation
+        const mainOrder = pendingOrders[0] || (order_id ? await ThiyaOrder.findByPk(order_id) : null);
 
         res.status(200).json({
             is_success: true,
             message: "Payment successfully verified",
-            data: order
+            data: mainOrder
         });
     } catch (err) {
         res.status(500).json({ is_success: false, message: err.message });
@@ -278,7 +344,7 @@ exports.getReports = async (req, res) => {
             include: [{
                 model: ThiyaProduct,
                 as: 'product',
-                attributes: ['title']
+                attributes: ['title', 'images']
             }],
             order: [['createdAt', 'DESC']]
         });

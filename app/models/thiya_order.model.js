@@ -17,6 +17,8 @@ module.exports = (sequelize, Sequelize) => {
         total_amount: { type: Sequelize.DECIMAL(10, 2), allowNull: false },
         payment_status: { type: Sequelize.STRING, defaultValue: 'pending' },
         payment_id: { type: Sequelize.STRING },
+        size: { type: Sequelize.STRING, defaultValue: 'Standard' },
+        color: { type: Sequelize.STRING, defaultValue: 'Default' },
         product_id: { type: Sequelize.INTEGER, allowNull: false }
     });
 
