@@ -7,10 +7,10 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-// Initialize Razorpay (using dummy keys for now, to be replaced by user)
+// Initialize Razorpay (loaded dynamically from environment variables)
 const razorpay = new Razorpay({
-    key_id: 'rzp_test_dummykeyid123',
-    key_secret: 'dummykeysecret1234567890'
+    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_dummykeyid123',
+    key_secret: process.env.RAZORPAY_KEY_SECRET || 'dummykeysecret1234567890'
 });
 
 // Products CRUD
