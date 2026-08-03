@@ -8,6 +8,14 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
+const adminEmail = process.env.ADMIN_EMAIL || 'admin@gmail.com';
+const adminPassword = process.env.ADMIN_PASSWORD || 'password';
+const secureTokenSalt = process.env.JWT_SECRET || 'thiya_fashions_secret_salt_9981';
+
+const VALID_ADMIN_TOKEN = crypto.createHmac('sha256', secureTokenSalt)
+    .update(`${adminEmail}:${adminPassword}`)
+    .digest('hex');
+
 // Initialize Razorpay (loaded dynamically from environment variables)
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_TLHl1pPEgDi0zC',
@@ -394,4 +402,40 @@ exports.getReports = async (req, res) => {
     } catch (err) {
         res.status(500).json({ is_success: false, message: err.message });
     }
+};
+
+exports.getTransactions = async (req, res) => {
+    try {
+        const transactions = await ThiyaTransaction.findAll({
+            order: [['createdAt', 'DESC']]
+        });
+        res.status(200).json({ is_success: true, data: transactions });
+    } catch (err) {
+        res.status(500).json({ is_success: false, message: err.message });
+    }
+};
+
+exports.adminLogin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (email === adminEmail && password === adminPassword) {
+            res.status(200).json({ is_success: true, token: VALID_ADMIN_TOKEN });
+        } else {
+            res.status(401).json({ is_success: false, message: "Invalid email or password" });
+        }
+    } catch (err) {
+        res.status(500).json({ is_success: false, message: err.message });
+    }
+};
+
+exports.authAdmin = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ is_success: false, message: "Unauthorized: Missing or invalid token" });
+    }
+    const token = authHeader.split(' ')[1];
+    if (token !== VALID_ADMIN_TOKEN) {
+        return res.status(401).json({ is_success: false, message: "Unauthorized: Invalid token session" });
+    }
+    next();
 };
