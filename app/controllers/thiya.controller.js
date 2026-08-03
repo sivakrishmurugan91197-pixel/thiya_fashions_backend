@@ -9,8 +9,8 @@ const path = require('path');
 
 // Initialize Razorpay (loaded dynamically from environment variables)
 const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_dummykeyid123',
-    key_secret: process.env.RAZORPAY_KEY_SECRET || 'dummykeysecret1234567890'
+    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_TLHl1pPEgDi0zC',
+    key_secret: process.env.RAZORPAY_KEY_SECRET || 'uDb2IlKq6Ca46Y13c6jOVyTX'
 });
 
 // Products CRUD
