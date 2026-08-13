@@ -70,7 +70,7 @@ exports.getProductById = async (req, res) => {
 
 exports.addProduct = async (req, res) => {
     try {
-        const { title, description, price, discount_amount, size, category_id, colors, details, status } = req.body;
+        const { title, description, price, discount_amount, size, category_id, colors, details, status, is_new_arrival, is_best_seller, is_trending } = req.body;
         
         // Ensure category exists
         if (category_id) {
@@ -101,7 +101,10 @@ exports.addProduct = async (req, res) => {
             status: status || 'active',
             colors: parsedColors,
             details: parsedDetails,
-            images: [] // Initialize empty
+            images: [], // Initialize empty
+            is_new_arrival: is_new_arrival === 'true' || is_new_arrival === true,
+            is_best_seller: is_best_seller === 'true' || is_best_seller === true,
+            is_trending: is_trending === 'true' || is_trending === true
         });
 
         // Handle File Uploads
@@ -159,7 +162,7 @@ exports.addProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, description, price, discount_amount, size, category_id, colors, details, status, existing_images } = req.body;
+        const { title, description, price, discount_amount, size, category_id, colors, details, status, existing_images, is_new_arrival, is_best_seller, is_trending } = req.body;
 
         const product = await ThiyaProduct.findByPk(id);
         if (!product) {
@@ -235,6 +238,9 @@ exports.updateProduct = async (req, res) => {
         product.colors = colors ? parsedColors : product.colors;
         product.details = details ? parsedDetails : product.details;
         product.images = imageUrls;
+        product.is_new_arrival = is_new_arrival !== undefined ? (is_new_arrival === 'true' || is_new_arrival === true) : product.is_new_arrival;
+        product.is_best_seller = is_best_seller !== undefined ? (is_best_seller === 'true' || is_best_seller === true) : product.is_best_seller;
+        product.is_trending = is_trending !== undefined ? (is_trending === 'true' || is_trending === true) : product.is_trending;
 
         await product.save();
 

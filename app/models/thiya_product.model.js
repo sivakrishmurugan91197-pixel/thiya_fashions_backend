@@ -72,6 +72,18 @@ module.exports = (sequelize, Sequelize) => {
             set(value) {
                 this.setDataValue('details', JSON.stringify(value));
             }
+        },
+        is_new_arrival: {
+            type: Sequelize.BOOLEAN,
+            defaultValue: false
+        },
+        is_best_seller: {
+            type: Sequelize.BOOLEAN,
+            defaultValue: false
+        },
+        is_trending: {
+            type: Sequelize.BOOLEAN,
+            defaultValue: false
         }
     });
 

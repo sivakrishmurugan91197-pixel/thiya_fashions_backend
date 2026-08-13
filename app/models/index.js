@@ -22,6 +22,8 @@ db.thiya_categories = require("./thiya_category.model.js")(sequelize, Sequelize)
 db.thiya_products = require("./thiya_product.model.js")(sequelize, Sequelize);
 db.thiya_orders = require("./thiya_order.model.js")(sequelize, Sequelize);
 db.thiya_transactions = require("./thiya_transaction.model.js")(sequelize, Sequelize);
+db.thiya_feedbacks = require("./thiya_feedback.model.js")(sequelize, Sequelize);
+db.thiya_video_banners = require("./thiya_video_banner.model.js")(sequelize, Sequelize);
 
 // Relations
 db.thiya_orders.belongsTo(db.thiya_products, { foreignKey: 'product_id', as: 'product' });
