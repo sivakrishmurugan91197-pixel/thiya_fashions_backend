@@ -286,7 +286,7 @@ exports.createOrder = async (req, res) => {
                 const unitPrice = parseFloat(product.price) - parseFloat(product.discount_amount || 0);
                 const qty = parseInt(item.quantity) || 1;
                 const subtotal = unitPrice * qty;
-                const gst = subtotal * 0.05;
+                const gst = 0;
                 const total = subtotal + gst;
 
                 checkoutItemsList.push({
@@ -310,7 +310,7 @@ exports.createOrder = async (req, res) => {
             const qty = parseInt(quantity) || 1;
             const unitPrice = parseFloat(product.price) - parseFloat(product.discount_amount || 0);
             const subtotal = unitPrice * qty;
-            const gst = subtotal * 0.05;
+            const gst = 0;
             const total = subtotal + gst;
 
             checkoutItemsList.push({
