@@ -336,12 +336,17 @@ exports.createOrder = async (req, res) => {
             receipt: `receipt_order_${new Date().getTime()}`
         };
         
-        let razorpayOrderId = `mock_order_${Date.now()}`;
+        let razorpayOrderId;
         try {
             const razorpayOrder = await razorpay.orders.create(options);
             razorpayOrderId = razorpayOrder.id;
         } catch (rzpError) {
+            if (razorpay.key_id && razorpay.key_id.startsWith('rzp_live_')) {
+                console.error("Razorpay order creation failed in Live mode:", rzpError.message);
+                return res.status(500).json({ is_success: false, message: `Payment Gateway Error: ${rzpError.message}` });
+            }
             console.warn("Razorpay API failed (likely dummy keys). Using mock order ID.", rzpError.message);
+            razorpayOrderId = `mock_order_${Date.now()}`;
         }
 
         // Save orders locally
@@ -404,8 +409,12 @@ exports.createOrder = async (req, res) => {
 exports.verifyPayment = async (req, res) => {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, order_id } = req.body;
     try {
-        // Skip signature check for mock payments (local dev only)
-        if (!razorpay_order_id.startsWith('mock_')) {
+        // Reject mock payments if live keys are active, otherwise bypass signature check for mock payments in test mode
+        if (razorpay_order_id.startsWith('mock_')) {
+            if (razorpay.key_id && razorpay.key_id.startsWith('rzp_live_')) {
+                return res.status(400).json({ is_success: false, message: "Mock payments are disabled in Live Production mode." });
+            }
+        } else {
             // Verify signature
             const shasum = crypto.createHmac('sha256', razorpay.key_secret);
             shasum.update(`${razorpay_order_id}|${razorpay_payment_id}`);
