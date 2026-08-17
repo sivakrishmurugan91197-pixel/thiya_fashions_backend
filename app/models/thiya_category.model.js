@@ -17,6 +17,11 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.BOOLEAN,
             allowNull: false,
             defaultValue: true
+        },
+        display_order: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            defaultValue: 9999
         }
     });
 
