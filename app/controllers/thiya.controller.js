@@ -35,7 +35,10 @@ exports.getProducts = async (req, res) => {
                 as: 'category',
                 attributes: ['name', 'status']
             }],
-            order: [['createdAt', 'DESC']]
+            order: [
+                ['display_order', 'ASC'],
+                ['id', 'DESC']
+            ]
         });
         
         // If activeOnly is true, also ensure the category is active (if it has a category)
@@ -70,7 +73,7 @@ exports.getProductById = async (req, res) => {
 
 exports.addProduct = async (req, res) => {
     try {
-        const { title, description, price, discount_amount, size, category_id, colors, details, status, is_new_arrival, is_best_seller, is_trending } = req.body;
+        const { title, description, price, discount_amount, size, category_id, colors, details, status, is_new_arrival, is_best_seller, is_trending, display_order } = req.body;
         
         // Ensure category exists
         if (category_id) {
@@ -104,7 +107,8 @@ exports.addProduct = async (req, res) => {
             images: [], // Initialize empty
             is_new_arrival: is_new_arrival === 'true' || is_new_arrival === true,
             is_best_seller: is_best_seller === 'true' || is_best_seller === true,
-            is_trending: is_trending === 'true' || is_trending === true
+            is_trending: is_trending === 'true' || is_trending === true,
+            display_order: display_order !== undefined && display_order !== '' ? parseInt(display_order, 10) : 9999
         });
 
         // Handle File Uploads
@@ -162,7 +166,7 @@ exports.addProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, description, price, discount_amount, size, category_id, colors, details, status, existing_images, is_new_arrival, is_best_seller, is_trending } = req.body;
+        const { title, description, price, discount_amount, size, category_id, colors, details, status, existing_images, is_new_arrival, is_best_seller, is_trending, display_order } = req.body;
 
         const product = await ThiyaProduct.findByPk(id);
         if (!product) {
@@ -241,6 +245,7 @@ exports.updateProduct = async (req, res) => {
         product.is_new_arrival = is_new_arrival !== undefined ? (is_new_arrival === 'true' || is_new_arrival === true) : product.is_new_arrival;
         product.is_best_seller = is_best_seller !== undefined ? (is_best_seller === 'true' || is_best_seller === true) : product.is_best_seller;
         product.is_trending = is_trending !== undefined ? (is_trending === 'true' || is_trending === true) : product.is_trending;
+        product.display_order = display_order !== undefined && display_order !== '' ? parseInt(display_order, 10) : product.display_order;
 
         await product.save();
 

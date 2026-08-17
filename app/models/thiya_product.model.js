@@ -84,6 +84,11 @@ module.exports = (sequelize, Sequelize) => {
         is_trending: {
             type: Sequelize.BOOLEAN,
             defaultValue: false
+        },
+        display_order: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            defaultValue: 9999
         }
     });
 
