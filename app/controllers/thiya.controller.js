@@ -275,7 +275,9 @@ exports.createOrder = async (req, res) => {
             state,
             quantity,
             size,
-            color
+            color,
+            came_from,
+            completed_page
         } = req.body;
 
         let totalAmount = 0;
@@ -377,7 +379,9 @@ exports.createOrder = async (req, res) => {
                 gst_amount: item.gstAmount,
                 total_amount: item.totalAmount,
                 payment_status: 'pending',
-                payment_id: razorpayOrderId // Store razorpayOrderId initially, updated to payment ID on verification
+                payment_id: razorpayOrderId, // Store razorpayOrderId initially, updated to payment ID on verification
+                came_from: came_from || 'Direct',
+                completed_page: completed_page || 'Checkout Form'
             });
             if (!firstOrderId) {
                 firstOrderId = newOrder.id;
@@ -448,6 +452,7 @@ exports.verifyPayment = async (req, res) => {
             for (const order of pendingOrders) {
                 order.payment_status = 'completed';
                 order.payment_id = razorpay_payment_id; 
+                order.completed_page = 'Order Success';
                 await order.save();
             }
         } else if (order_id) {
@@ -456,6 +461,7 @@ exports.verifyPayment = async (req, res) => {
             if (order) {
                 order.payment_status = 'completed';
                 order.payment_id = razorpay_payment_id; 
+                order.completed_page = 'Order Success';
                 await order.save();
             }
         }

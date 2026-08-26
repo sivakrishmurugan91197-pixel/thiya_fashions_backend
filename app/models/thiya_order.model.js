@@ -19,7 +19,9 @@ module.exports = (sequelize, Sequelize) => {
         payment_id: { type: Sequelize.STRING },
         size: { type: Sequelize.STRING, defaultValue: 'Standard' },
         color: { type: Sequelize.STRING, defaultValue: 'Default' },
-        product_id: { type: Sequelize.INTEGER, allowNull: false }
+        product_id: { type: Sequelize.INTEGER, allowNull: false },
+        came_from: { type: Sequelize.STRING, defaultValue: 'Direct' },
+        completed_page: { type: Sequelize.STRING, defaultValue: 'Checkout Form' }
     });
 
     return ThiyaOrder;
