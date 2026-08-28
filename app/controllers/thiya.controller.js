@@ -543,6 +543,18 @@ exports.adminLogin = async (req, res) => {
     }
 };
 
+exports.getOrderById = async (req, res) => {
+    try {
+        const order = await ThiyaOrder.findByPk(req.params.id);
+        if (!order) {
+            return res.status(404).json({ is_success: false, message: "Order not found" });
+        }
+        res.status(200).json({ is_success: true, data: order });
+    } catch (err) {
+        res.status(500).json({ is_success: false, message: err.message });
+    }
+};
+
 exports.authAdmin = (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

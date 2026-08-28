@@ -26,6 +26,7 @@ router.put('/products/:id', thiyaController.authAdmin, upload.any(), thiyaContro
 
 // Orders & Payment
 router.post('/orders', thiyaController.createOrder);
+router.get('/orders/:id', thiyaController.getOrderById);
 router.post('/orders/verify', thiyaController.verifyPayment);
 
 // Reports
